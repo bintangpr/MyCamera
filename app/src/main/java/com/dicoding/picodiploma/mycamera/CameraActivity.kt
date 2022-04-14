@@ -1,7 +1,6 @@
 package com.dicoding.picodiploma.mycamera
 
 import android.content.Intent
-import android.media.Image
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowInsets
@@ -20,9 +19,10 @@ import java.util.concurrent.Executors
 
 class CameraActivity : AppCompatActivity() {
     private lateinit var binding: ActivityCameraBinding
-    private var imageCapture: ImageCapture? = null
     private lateinit var cameraExecutor: ExecutorService
+
     private var cameraSelector: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+    private var imageCapture: ImageCapture? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,7 +36,8 @@ class CameraActivity : AppCompatActivity() {
         binding.switchCamera.setOnClickListener {
             cameraSelector = if (cameraSelector.equals(CameraSelector.DEFAULT_BACK_CAMERA)) CameraSelector.DEFAULT_FRONT_CAMERA
             else CameraSelector.DEFAULT_BACK_CAMERA
-            startCamera() }
+            startCamera()
+        }
     }
 
     public override fun onResume() {
@@ -45,10 +46,16 @@ class CameraActivity : AppCompatActivity() {
         startCamera()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        cameraExecutor.shutdown()
+    }
+
     private fun takePhoto() {
-       // takePhoto
         val imageCapture = imageCapture ?: return
+
         val photoFile = createFile(application)
+
         val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
         imageCapture.takePicture(
             outputOptions,
@@ -61,6 +68,7 @@ class CameraActivity : AppCompatActivity() {
                         Toast.LENGTH_SHORT
                     ).show()
                 }
+
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     val intent = Intent()
                     intent.putExtra("picture", photoFile)
@@ -75,10 +83,7 @@ class CameraActivity : AppCompatActivity() {
         )
     }
 
-
-
     private fun startCamera() {
-        // showCamera
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
 
         cameraProviderFuture.addListener({
@@ -88,7 +93,9 @@ class CameraActivity : AppCompatActivity() {
                 .also {
                     it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
                 }
+
             imageCapture = ImageCapture.Builder().build()
+
             try {
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(
@@ -97,8 +104,13 @@ class CameraActivity : AppCompatActivity() {
                     preview,
                     imageCapture
                 )
-            } catch (exc: Exception){
-                Toast.makeText(this@CameraActivity, "Gagal memunculkan kamera.", Toast.LENGTH_SHORT).show()
+
+            } catch (exc: Exception) {
+                Toast.makeText(
+                    this@CameraActivity,
+                    "Gagal memunculkan kamera.",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }, ContextCompat.getMainExecutor(this))
     }
